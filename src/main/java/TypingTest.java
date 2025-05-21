@@ -1,18 +1,34 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.io.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
 
 public class TypingTest {
 
-    private static String lastInput = "";
+    private static volatile String lastInput = "";
     private static Scanner scanner = new Scanner(System.in);
-    public static class InputRunnable implements Runnable {
+    private static List<Duration> durations = new ArrayList<>();
+    private static Instant startTime;
+    private static Instant endTime;
+    private static int correct = 0;
 
-        //TODO: Implement a thread to get user input without blocking the main thread
+    public static class InputRunnable implements Runnable {
         @Override
         public void run() {
 
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    lastInput = scanner.nextLine();
+                    if (!lastInput.isEmpty()) {
+                        endTime = Instant.now();
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+
         }
+
     }
 
 
@@ -20,44 +36,84 @@ public class TypingTest {
         try {
             System.out.println(wordToTest);
             lastInput = "";
-
-            // TODO
-
+            startTime = Instant.now();
+            Duration duration = Duration.between(startTime, endTime);
+            durations.add(duration);
             System.out.println();
             System.out.println("You typed: " + lastInput);
             if (lastInput.equals(wordToTest)) {
-                System.out.println("Correct");
+                System.out.println("Correct : " + duration.toMillis());
+                correct++;
             } else {
                 System.out.println("Incorrect");
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public static void typingTest(List<String> inputList) throws InterruptedException {
-
-        for (int i = 0; i < inputList.size(); i++) {
-            String wordToTest = inputList.get(i);
+        Thread thread = new Thread(new InputRunnable());
+        thread.start();
+        Thread.sleep(1000);
+        for (String wordToTest : inputList) {
             testWord(wordToTest);
-            Thread.sleep(2000); // Pause briefly before showing the next word
+            Thread.sleep(100); // Pause briefly before showing the next word
         }
+        thread.interrupt();
+        System.out.println("===============================");
+        System.out.println("correct : " + correct);
+        System.out.println("accuracy : " + (correct * 100) / inputList.size() + "%");
+    }
 
-        // TODO: Display a summary of test results
+    public static List<String> readWordsFromFile(String filename) {
+        List<String> words = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (!line.trim().isEmpty()) {
+                    words.add(line.trim());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to read the file: " + filename);
+            e.printStackTrace();
+        }
+        return words;
     }
 
     public static void main(String[] args) throws InterruptedException {
+
+
         List<String> words = new ArrayList<>();
-        words.add("remember");
-        words.add("my friend");
-        words.add("boredom");
-        words.add("is a");
-        words.add("crime");
+        File wordsFile = new File("src\\main\\resources\\Words.txt");
+        try {
+            Scanner wordScanner = new Scanner(wordsFile);
+            while (wordScanner.hasNextLine()) {
+                words.add(wordScanner.nextLine());
+            }
+            wordScanner.close();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        Collections.shuffle(words);
+        List<String> selectedWords;
+        while(true){
 
-        // TODO: Replace the hardcoded word list with words read from the given file in the resources folder (Words.txt)
-        typingTest(words);
+            try{
+                System.out.println("Type the number of words you want to type : (0 to 100) ");
+                int numberOfWords = Integer.parseInt(scanner.nextLine());
+                selectedWords = words.subList(0, numberOfWords);
+                break;
+            }catch(IndexOutOfBoundsException e){
+                System.out.println("Enter a valid number");
+                continue;
+            }
+        }
 
+        typingTest(selectedWords);
         System.out.println("Press enter to exit.");
     }
 }
+
+

@@ -1,0 +1,99 @@
+# Questions and Answers
+
+## Q1: `start()` vs `run()`
+
+### **Output 1:**
+Calling run()
+Running in: main
+
+**Reason:**  
+When you call `run()` directly on the Thread object (`t1`), it executes the `run()` method in the current thread (**main thread**) instead of creating a new thread.
+
+### **Output 2:**
+Calling start()
+Running in: Thread-2
+
+**Reason:**  
+When you call `start()`, the JVM creates a **new thread** (`Thread-2`) and executes the `run()` method in that thread.
+
+### **Comparison of `start()` and `run()`**
+| Method   | Description |
+|----------|------------|
+| `start()` | Starts a new thread and calls `run()` in that thread. |
+|          | Part of the `Thread` class, used for multithreading. |
+|          | **Cannot** be called twice on the same thread (**throws `IllegalThreadStateException`**). |
+| `run()`  | Executes `run()` in the current thread (**no new thread is created**). |
+|          | Just a **normal method call**, no threading involved. |
+|          | **Can** be called multiple times like any other method. |
+
+### **Key Takeaway**
+If you call `run()` directly, you **lose multithreading** and execute code sequentially.  
+**`start()` is the correct way to launch a new thread in Java!** 🚀
+
+---
+
+## Q2: **Daemon Threads**
+
+### **Output**
+
+The program may print `"Daemon thread running..."` a few times (**in IntelliJ, it printed only once**), but it does **not complete all 20 iterations** because the JVM **exits as soon as the main thread ends**, killing the daemon thread prematurely.
+
+### **Reason**
+Daemon threads are **low-priority** threads that do **not** prevent the JVM from exiting when all **non-daemon (user) threads** finish.  
+Since `thread.setDaemon(true)` marks the thread as a **daemon**, the JVM **terminates** it when `main()` completes—even if the daemon thread is still running.
+
+### **If We Remove `setDaemon(true)`**
+The thread becomes a **non-daemon (user) thread**.
+
+#### **Output:**
+
+Main thread ends.
+Daemon thread running...(20 times)
+
+- The JVM **waits** for the **non-daemon thread** to finish before exiting.
+- The loop **runs all 20 times** before the program terminates.
+
+### **Real-Life Use Cases of Daemon Threads**
+1. **Garbage Collection (GC)** → The JVM’s **GC** runs on a daemon thread to clean up unused objects in the background.
+2. **Background Logging / Monitoring** → A daemon thread can periodically log application metrics **without blocking shutdown**.
+3. **Auto-Save Features (e.g., IDEs, Games)** → A daemon thread can **save progress in the background** without preventing the app from closing.
+4. **Heartbeat Checks (Network Applications)** → A daemon thread can ping servers **periodically** but **should not keep the app alive** if the main thread dies.
+5. **Cleanup Tasks (Temp File Deletion, Cache Refresh)** → Background cleanup can run **without delaying program termination**.
+
+---
+
+## Q3: **Lambda Expressions**
+
+### **Output:**
+Thread is running using a ...!
+
+### **What is `() -> { ... }` Called?**
+This is a **lambda expression**, introduced in **Java 8** for concise functional programming.  
+
+### **Definition**
+A **lambda expression** represents an **anonymous implementation** of a functional interface (**an interface with a single abstract method, like `Runnable`**).  
+It replaces the need to **explicitly write** a `Runnable` class or an **anonymous inner class**.
+
+### **Comparison of Thread Creation Approaches**
+| Approach | Lambda (`() -> {}`) | `extends Thread` | `implements Runnable` |
+|----------|----------------------|------------------|------------------|
+| **Syntax** | Short and concise | Requires subclassing | Requires a class |
+| **Flexibility** | Only for functional interfaces | Ties logic to `Thread` subclass | Separates logic from threading |
+| **Reusability** | Not reusable (inline) | Tightly coupled to `Thread` | **Reusable** (can be passed to multiple threads) |
+| **Java Version** | Java 8+ | Java 1.0+ | Java 1.0+ |
+| **Best For** | Simple one-off tasks | Rarely recommended (inheritance limits flexibility) | **Preferred for complex tasks** |
+
+### **Key Differences**
+1. **Lambda (`() -> {}`)**:
+   - Used for **quick, short tasks** where **creating a full class is unnecessary**.
+   - Works **because `Runnable` is a functional interface** (only `run()` method).
+
+2. **Extends `Thread`**:
+   - **Not recommended** (Java discourages subclassing `Thread`).
+   - **Mixes thread logic with task logic**, reducing flexibility.
+
+3. **Implements `Runnable`**:
+   - **Preferred for most cases** (separates task from threading).
+   - **More reusable** and follows **composition over inheritance**.
+
+
